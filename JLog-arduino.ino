@@ -1,62 +1,72 @@
 #include "JLog.h"
-#include <DS3231.h>
+//#include <DS3231.h>
+//#include <SPI.h>
+#include<Wire.h>
 
-//#define USE_SDCARD
-#define LOG_USB
-//#define DEBUG_USB
-//#define USE_RTC
+const int MPU_addr=0x68;  // I2C address of the MPU-6050
+
+int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 JLog logger = JLog();
 
 // Init the DS3231 using the hardware interface
-DS3231  rtc(SDA, SCL);
+//DS3231  rtc(SDA, SCL);
 
-#define SD_ID 14
+int SD_ID = 10;
 
 void setup()
 {
+  Wire.begin();
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x6B);  // PWR_MGMT_1 register
+  Wire.write(0);     // set to zero (wakes up the MPU-6050)
+  Wire.endTransmission(true);
   // Setup Serial connection
   Serial.begin(9600);
-#ifdef USE_RTC
-  rtc.begin();
+  
+  //rtc.begin();
+  
   // Uncomment the next line if you are using an Arduino Leonardo
   //while (!Serial) {}
-#ifdef DEBUG_USB
-  Serial.println("rtc set to:");
-  Serial.print(rtc.getDateStr());
-#endif
-#endif
-#ifdef USE_SDCARD
-  //now lets find next availible name
-  char* datestr = rtc.getDateStr();
-  int i = 0;
-  char* fileName = datestr;
-  strcat(fileName, String(i));
-  strcat(fileName, ".jlog");
-  while SD.exists(fileName){
-    i++;
-    fileName = datestr;
-    strcat(fileName, String(i));
-    strcat(fileName, ".jlog");
-  }
-  logger.begin(fileName, SD_ID);
-  logger.addToHeader("date",String(rtc.getUnixTime()));
-#endif
-  logger.begin();
-  logger.addSensorLogId("0x01","voltage");
-  logger.addSensorLogId("0x02","voltage2");
+  
+  //Serial.println("rtc set to:");
+  //Serial.print(rtc.getDateStr());
+
+
+  
+  char* datestr = "test";//rtc.getDateStr();
+  logger.begin(datestr, SD_ID);
+  //TODO: fix adding date to header
+  //logger.addToHeader("date",String(rtc.getTime()));
+  logger.addSensorLogId("0x01","AcX");
+  logger.addSensorLogId("0x02","AcY");
+  logger.addSensorLogId("0x03","AcZ");
+  logger.addSensorLogId("0x04","Tmp");
+  logger.addSensorLogId("0x05","GyX");
+  logger.addSensorLogId("0x06","GyY");
+  logger.addSensorLogId("0x07","GyZ");
   logger.writeHeader();
 }
 
-int iii = 0;
 void loop() {
-  if(iii==100){
-    logger.writeValue(0x01, analogRead(0));
-    logger.writeValue(0x02, analogRead(1));
-    delay(100);
-    iii = 0;
-  } else {
-    iii++;
-  }
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+  AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)     
+  AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+  AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+  Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+  GyX=Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
+  GyY=Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
+  GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+  Serial.print("AcX = "); Serial.print(AcX);
+  logger.writeValue(0x01, AcX);
+  logger.writeValue(0x02, AcY);
+  logger.writeValue(0x03, AcZ);
+  logger.writeValue(0x04, Tmp/340.00+36.53); //equation for temperature in degrees C from datasheet
+  logger.writeValue(0x05, GyX);
+  logger.writeValue(0x06, GyY);
+  logger.writeValue(0x07, GyZ);
   delay(10);
 }

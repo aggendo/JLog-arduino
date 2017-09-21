@@ -17,6 +17,7 @@ class JLog
     void writeValue(int sensorId, byte sensorValue);
     void writeValue(int sensorId, char sensorValue);
     void writeValue(int sensorId, short sensorValue);
+    void writeValue(int sensorId, double sensorValue);
     void closeFile();
   private:
     void writeVal(uint8_t data);

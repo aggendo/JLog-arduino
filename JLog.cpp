@@ -1,11 +1,9 @@
 #include "Arduino.h"
 #include "JLog.h"
-//#ifdef USE_SDCARD
 #include <SPI.h>
 #include <SD.h>
 
 File dataFile;
-//#endif
 
 struct datastore_char {
     long Millis;
@@ -20,6 +18,14 @@ struct datastore_int {
     char sensorId;
     char variable_length; //2 or 4 bytes
     int value;
+    char end_byte;
+};
+
+struct datastore_double {
+    long Millis;
+    char sensorId;
+    char variable_length; //2 or 4 bytes
+    double value;
     char end_byte;
 };
 
@@ -42,17 +48,29 @@ struct datastore_long {
 JLog::JLog()
 {
 }
-void JLog::begin(char filename[], int sdcardId){
-  _filename = filename;
-  _sdcardId = sdcardId;
-  #ifdef USE_SDCARD
-  if (!SD.begin(sdcardId)) {
-        Serial.println("Card failed, or not present");
-        return;
+void JLog::begin(char datestr[], int SD_ID){
+  if (!SD.begin(SD_ID)) {
+     Serial.println("Card failed, or not present");
+     return;
   }
-  dataFile = SD.open(filename, FILE_WRITE);
-  #endif
-  _headercontents = "<header>\n\r";
+  Serial.println("card initialized");
+  
+  //now lets find next availible name
+  /*int i = 0;
+  char* filename = sprintf("%s_%i.jlog",datestr, i);
+  while(SD.exists(filename)){
+    i++;
+    filename = sprintf("%s-%i.jlog",datestr, i);
+  }*/
+  String filename = "loggy1.txt";
+  dataFile = SD.open(filename);//filename, FILE_WRITE);
+  if(!dataFile){
+    Serial.print("cannot write to file: ");
+    Serial.println(filename);
+    return;
+  }
+  Serial.print("Logging to ");
+  Serial.println(filename);
   addToHeader("version", FILE_VERSION);
 }
 void JLog::begin(){
@@ -63,38 +81,19 @@ void JLog::begin(){
 }
 
 void JLog::addSensorLogId(char id[], char Name[]){
-  //sprintf(_sensorIdNames, "%s%s:%s,\n\r", _sensorIdNames, Name, id);
-  Serial.print(Name);
-  Serial.print(":");
-  Serial.print(id);
-  Serial.println(",");
+  sprintf(_sensorIdNames, "%s%s:%s,\n\r", _sensorIdNames, Name, id);
 }
 void JLog::addToHeader(char Name[], char Value[]){
-  Serial.print(Name);
-  Serial.print(":");
-  Serial.print(String(Value));
-  Serial.print(";\n\r");
-  /*strcat(_headercontents, Name);
-  strcat(_headercontents, ":");
-  strcat(_headercontents, Value);
-  strcat(_headercontents, ";\n\r");*/
+  sprintf("%s%s:%s;\n\r", _headercontents, Name, Value);
 }
 /*void JLog::setIdByteSize(int Size){
   
 }*/
 void JLog::writeHeader(){
-  char* header = "";
-  //strcat(header, _headercontents);
-  sprintf(header, "names: {\n\r %s};\n\r</header>",_sensorIdNames);
-  #ifdef USE_SDCARD
+  char* header;
+  sprintf(header, "<header>\n\r%s names: {\n\r %s};\n\r</header>", _headercontents, _sensorIdNames);
   dataFile.print(header);
-  Serial.print("oohs");
   dataFile.flush(); //make sure everything gets put in the file before we continue.
-  #endif
-  //#ifdef LOG_USB
-  Serial.print("}</header>");
-  Serial.flush();
-  //#endif
 }
 
 //Below is not good programming but it is more efficiant than a proper modular design
@@ -107,9 +106,9 @@ void JLog::writeValue(int sensorId, int sensorValue){
   myData.Millis = millis();
   myData.sensorId = sensorId;
   myData.value = sensorValue;
-  //dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  //dataFile.flush();
-  Serial.write((uint8_t *)&myData, sizeof(myData));
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
 }
 
 void JLog::writeValue(int sensorId, long sensorValue){
@@ -119,9 +118,9 @@ void JLog::writeValue(int sensorId, long sensorValue){
   myData.Millis = millis();
   myData.sensorId = sensorId;
   myData.value = sensorValue;
-  //dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  //dataFile.flush();
-  Serial.write((uint8_t *)&myData, sizeof(myData));
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
 }
 void JLog::writeValue(int sensorId, byte sensorValue){
   struct datastore_char myData;
@@ -130,9 +129,9 @@ void JLog::writeValue(int sensorId, byte sensorValue){
   myData.Millis = millis();
   myData.sensorId = sensorId;
   myData.value = sensorValue;
-  //dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  //dataFile.flush();
-  Serial.write((uint8_t *)&myData, sizeof(myData));
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
 }
 void JLog::writeValue(int sensorId, char sensorValue){
   struct datastore_char myData;
@@ -141,9 +140,9 @@ void JLog::writeValue(int sensorId, char sensorValue){
   myData.Millis = millis();
   myData.sensorId = sensorId;
   myData.value = sensorValue;
-  //dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  //dataFile.flush();
-  Serial.write((uint8_t *)&myData, sizeof(myData));
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
 }
 void JLog::writeValue(int sensorId, short sensorValue){
   struct datastore_short myData;
@@ -152,9 +151,20 @@ void JLog::writeValue(int sensorId, short sensorValue){
   myData.Millis = millis();
   myData.sensorId = sensorId;
   myData.value = sensorValue;
-  //dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  //dataFile.flush();
-  Serial.write((uint8_t *)&myData, sizeof(myData));
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
+}
+void JLog::writeValue(int sensorId, double sensorValue){
+  struct datastore_double myData;
+  myData.variable_length = sizeof(sensorValue);
+  myData.end_byte = ENDBYTE;
+  myData.Millis = millis();
+  myData.sensorId = sensorId;
+  myData.value = sensorValue;
+  dataFile.write((const uint8_t *)&myData, sizeof(myData));
+  dataFile.flush();
+  //Serial.write((uint8_t *)&myData, sizeof(myData));
 }
 void JLog::closeFile(){
   dataFile.close();
