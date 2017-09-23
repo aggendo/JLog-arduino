@@ -5,22 +5,19 @@ class JLog
 {
   public:
     JLog();
-    void begin(char filename[], int sdcardId);
-    void begin();
-    void addSensorLogId(char id[], char Name[]);
-    void addToHeader(char Name[], char Value[]);
+    bool begin(char *filename, char sdcardId, bool overWrite);
+    bool begin(char *filename, char sdcardId);
+    void addSensorLogId(char id, char *Name);
+    void addToHeader(char *Name, char *Value);
     //void setIdByteSize(int Size);
-    void writeHeader();
-    void writeValue(int sensorId, int sensorValue);
-    void writeValue(int sensorId, float sensorValue);
-    void writeValue(int sensorId, long sensorValue);
-    void writeValue(int sensorId, byte sensorValue);
-    void writeValue(int sensorId, char sensorValue);
-    void writeValue(int sensorId, short sensorValue);
-    void writeValue(int sensorId, double sensorValue);
-    void closeFile();
+    bool writeHeader();
+    bool writeValue(char sensorId, int sensorValue);
+    bool writeValue(char sensorId, float sensorValue);
+    bool writeValue(char sensorId, long sensorValue);
+    bool writeValue(char sensorId, char sensorValue);
+    bool writeValue(char sensorId, short sensorValue);
+    bool writeValue(char sensorId, double sensorValue);
   private:
-    void writeVal(uint8_t data);
     int _IdByteSize;
     char* _filename; //TODO: 50 character limit on filename
     int _sdcardId;
