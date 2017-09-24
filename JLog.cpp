@@ -9,6 +9,8 @@ short name_line; //last line with ValueId 'id:name' pair
 
 char * _filename;
 
+const PROGMEM char CARD_FAILED[] = "cannot write to file: ";
+
 
 //#TODO: make variable length byte actually an byte that denotes variable type not the number of bytes the variable is i.e. (0x01 = char, 0x02 = unsigned char...) that will be in version 0.1.2 of format
 
@@ -30,13 +32,14 @@ bool JLog::begin(char *filename, int sdcardId){
 
 bool JLog::begin(char *filename, int sdcardId, bool overWrite){
   if (!SD.begin(sdcardId)) {
-     Serial.println("Card failed, or not present");
+     Serial.println(F("Card failed, or not present"));
      return(false);
   }
-  Serial.println("card initialized");
+  Serial.println(F("card initialized"));
   if(SD.exists(filename)){
     if(!overWrite){ //we need to find the next availible filename
       //now lets find next availible name
+      //TODO: go back to finding the period
       char * actualName = strtok_r(filename, ".", &filename);
       Serial.print("finding next availible name for file of name: ");
       Serial.println(actualName);
@@ -52,15 +55,15 @@ bool JLog::begin(char *filename, int sdcardId, bool overWrite){
     }
   }
   _filename = filename;
-  if(SD.exists("tmp0")){
-    SD.remove("tmp0"); //delete the old tempory file
+  if(SD.exists(F("tmp0"))){
+    SD.remove(F("tmp0")); //delete the old tempory file
   }
-  File tmpFile = SD.open("tmp0", FILE_WRITE);
+  File tmpFile = SD.open(F("tmp0"), FILE_WRITE);
   if(!tmpFile){
-    Serial.print("cannot write to file: tmp0");
+    Serial.print(F("cannot write to file: tmp0"));
     return(false);
   } else {
-    tmpFile.write("<header>\r\nnames : {\r\n};\r\n</header>"); //write skeleton structure to a temporary file
+    tmpFile.write(F("<header>\r\nnames : {\r\n};\r\n</header>")); //write skeleton structure to a temporary file
     header_line = 1;
     name_line = 2;//we set these here instead of as default so you can close a logging file and open a different with same class (don't know why you would though)
     tmpFile.close();
@@ -70,7 +73,7 @@ bool JLog::begin(char *filename, int sdcardId, bool overWrite){
 
 //copies everything from the temporary file to the real one
 void JLog::addToFile(bool finalWrite, int line, char *Entry){
-  char *tmpName; //input file
+  char *tmpName = new char[5]; //input file
   char *finalFileName; // output file
   if(SD.exists(F("tmp0"))){
      tmpName = "tmp0";
@@ -93,13 +96,13 @@ void JLog::addToFile(bool finalWrite, int line, char *Entry){
   }
   File tmpFile = SD.open(tmpName, FILE_READ);
   if(!tmpFile){
-    Serial.print("cannot write to file: ");
+    Serial.print(CARD_FAILED);
     Serial.println(tmpName);
     return;
   }
   File finalFile = SD.open(finalFileName, FILE_WRITE);
   if(!finalFile){
-    Serial.print("cannot write to file: ");
+    Serial.print(CARD_FAILED);
     Serial.println(finalFileName);
     return;
   }
@@ -136,16 +139,17 @@ void JLog::addToFile(bool finalWrite, int line, char *Entry){
 //NOTE: once this is run you CANNOT edit the contents of the header
 void JLog::writeHeader(){
   addToFile(true, 0, "");
+  Serial.println("wroteHeader");
 }
 
 void JLog::addToHeader(char *Name, char *ValueFor){
-  char * newEntry = new char[50];//TODO: dynamically allocate from sizeof(Name) and sizeof(Value)
+  char * newEntry = new char[20];//TODO: dynamically allocate from sizeof(Name) and sizeof(Value)
   sprintf(newEntry, "%s:%s;\r\n", Name, ValueFor);
   addToFile(false, header_line, newEntry);
 }
 
 void JLog::addValueId(char id, char *Name){
-  char * newEntry = new char[50]; //TODO: also dynamically alocate this
+  char * newEntry = new char[20]; //TODO: also dynamically alocate this
   sprintf(newEntry, "%2X:%s,\r\n", id, Name); //probably should be %x:%s
   addToFile(false, name_line, newEntry);
 }
@@ -153,7 +157,7 @@ void JLog::addValueId(char id, char *Name){
 bool JLog::writeValue(char sensorId, unsigned char *sensorValue){
   File dataFile = SD.open(_filename, FILE_WRITE);
   if(!dataFile){
-    Serial.print("cannot write to file: ");
+    Serial.print(CARD_FAILED);
     Serial.println(_filename);
     return(false);
   }
@@ -182,7 +186,7 @@ void JLog::serialUpload(){
     myFile.close();
   } else {
     // if the file didn't open, print an error:
-    Serial.print("error opening ");
+    Serial.print(F("error opening "));
     Serial.println(_filename);
   }
 }
