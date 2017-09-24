@@ -2,8 +2,6 @@
 //#include <SPI.h>
 #include<Wire.h>
 #include "Arduino.h"
-#include <SPI.h>
-#include <SD.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 #include "JLog.h"
@@ -25,8 +23,6 @@ char dateStr[5]="";
 char timeStr[11]="";
 
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
-
-int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 // Init the DS3231 using the hardware interface
 //DS3231  rtc(SDA, SCL);
@@ -72,11 +68,9 @@ void setup()
   char * filename;
   sprintf(filename, "%s.jlog",dateStr);
   logger.begin(filename, SD_ID);
-  logger.addSensorLogId("0x01","Latitude");
-  logger.addSensorLogId("0x02","Longitude");
-  logger.addSensorLogId("0x03","Date");
-  logger.addSensorLogId("0x04","Time");
-  logger.addSensorLogId("0x05","Altitude");
+  logger.addValueId("0x01","Latitude");
+  logger.addValueId("0x02","Longitude");
+  logger.addValueId("0x05","Altitude");
   //we are going to try and use the gps to get the time and date
   pinMode(5, OUTPUT);
   pinMode(3, OUTPUT);
@@ -89,8 +83,8 @@ void loop() {
       void displayInfo();
       if (gps.location.isValid())
       {
-        logger.writeValue(0x01,gps.location.lat());
-        logger.writeValue(0x01,gps.location.lng());
+        logger.writeValue(0x01, byte(gps.location.lat()));
+        logger.writeValue(0x01, byte(gps.location.lng()));
       }
     }
   }

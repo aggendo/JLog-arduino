@@ -1,11 +1,13 @@
 #include "JLog.h"
 #include "Arduino.h"
-#include <SPI.h>
+//#include <SPI.h>
 #include <SD.h>
-#include <stdio.h>
+//#include <stdio.h>
 
 short header_line; //which line is the last key:value pair in header on (not including those in 'name : {}'
 short name_line; //last line with ValueId 'id:name' pair
+
+char * _filename;
 
 
 //#TODO: make variable length byte actually an byte that denotes variable type not the number of bytes the variable is i.e. (0x01 = char, 0x02 = unsigned char...) that will be in version 0.1.2 of format
@@ -14,7 +16,7 @@ struct datastore {
     long Millis;
     char sensorId;
     char variable_length; //1
-    uint8_t *value;
+    byte * value;
     char end_byte;
 };
 
@@ -148,10 +150,7 @@ void JLog::addValueId(char id, char *Name){
   addToFile(false, name_line, newEntry);
 }
 
-//Below is not good programming but it is more efficiant than a proper modular design
-//Sadly this is the best way of writing it for speed
-
-bool JLog::writeValue(char sensorId, int sensorValue){
+bool JLog::writeValue(char sensorId, unsigned char *sensorValue){
   File dataFile = SD.open(_filename, FILE_WRITE);
   if(!dataFile){
     Serial.print("cannot write to file: ");
@@ -163,81 +162,7 @@ bool JLog::writeValue(char sensorId, int sensorValue){
   myData.end_byte = ENDBYTE;
   myData.Millis = millis();
   myData.sensorId = sensorId;
-  myData.value = (const byte *) sensorValue;
-  dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  dataFile.flush();
-  dataFile.close();
-  return(true);
-}
-
-bool JLog::writeValue(char sensorId, long sensorValue){
-  File dataFile = SD.open(_filename, FILE_WRITE);
-  if(!dataFile){
-    Serial.print("cannot write to file: ");
-    Serial.println(_filename);
-    return(false);
-  }
-  struct datastore myData;
-  myData.variable_length = 4;
-  myData.end_byte = ENDBYTE;
-  myData.Millis = millis();
-  myData.sensorId = sensorId;
-  myData.value = (const byte *) sensorValue;
-  dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  dataFile.flush();
-  dataFile.close();
-  return(true);
-}
-
-bool JLog::writeValue(char sensorId, char sensorValue){
-  File dataFile = SD.open(_filename, FILE_WRITE);
-  if(!dataFile){
-    Serial.print("cannot write to file: ");
-    Serial.println(_filename);
-    return(false);
-  }
-  struct datastore myData;
-  myData.variable_length = 1;
-  myData.end_byte = ENDBYTE;
-  myData.Millis = millis();
-  myData.sensorId = sensorId;
-  myData.value = (const byte) sensorValue;
-  dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  dataFile.flush();
-  dataFile.close();
-  return(true);
-}
-bool JLog::writeValue(char sensorId, short sensorValue){
-  File dataFile = SD.open(_filename, FILE_WRITE);
-  if(!dataFile){
-    Serial.print("cannot write to file: ");
-    Serial.println(_filename);
-    return(false);
-  }
-  struct datastore myData;
-  myData.variable_length = 2;
-  myData.end_byte = ENDBYTE;
-  myData.Millis = millis();
-  myData.sensorId = sensorId;
-  myData.value = (const byte *) sensorValue;
-  dataFile.write((const uint8_t *)&myData, sizeof(myData));
-  dataFile.flush();
-  dataFile.close();
-  return(true);
-}
-bool JLog::writeValue(char sensorId, double sensorValue){
-  File dataFile = SD.open(_filename, FILE_WRITE);
-  if(!dataFile){
-    Serial.print("cannot write to file: ");
-    Serial.println(_filename);
-    return(false);
-  }
-  struct datastore myData;
-  myData.variable_length = sizeof(sensorValue);
-  myData.end_byte = ENDBYTE;
-  myData.Millis = millis();
-  myData.sensorId = sensorId;
-  myData.value = (const uint8_t) sensorValue;
+  myData.value = sensorValue;
   dataFile.write((const uint8_t *)&myData, sizeof(myData));
   dataFile.flush();
   dataFile.close();

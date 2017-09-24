@@ -13,20 +13,18 @@ class JLog
     void addValueId(char id, char *Name);
     void addToHeader(char *Name, char *ValueFor);
     //void setIdByteSize(int Size);
-    bool writeValue(char sensorId, int sensorValue);
-    bool writeValue(char sensorId, float sensorValue);
-    bool writeValue(char sensorId, long sensorValue);
-    bool writeValue(char sensorId, char sensorValue);
-    bool writeValue(char sensorId, short sensorValue);
-    bool writeValue(char sensorId, double sensorValue);
+    bool writeValue(char sensorId, unsigned char *sensorValue);
+    //bool writeValue(char sensorId, float sensorValue);
+    //bool writeValue(char sensorId, long sensorValue);
+    //bool writeValue(char sensorId, char sensorValue);
+    //bool writeValue(char sensorId, short sensorValue);
+    //bool writeValue(char sensorId, double sensorValue);
     #ifdef DEBUG
     void serialUpload(); //for debugging uploads file through serial
     #endif
   private:
-    int _IdByteSize;
     //in the below method finalWrite denotes that the output file is _filename
     void addToFile(bool finalWrite, int line, char* Entry);
-    char* _filename; //TODO: 50 character limit on filename
     #define ENDBYTE 0xff
     #define FILE_VERSION "0.1"
 };
