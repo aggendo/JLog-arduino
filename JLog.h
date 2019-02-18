@@ -10,8 +10,6 @@ class JLog
     bool begin(char filename[], int sdcardId, bool overWrite);
     bool begin(char filename[], int sdcardId);
     void writeHeader();
-    void addValueId(char const id, char const *Name);
-    void addToHeader(char const *Name, char const *ValueFor);
     //void setIdByteSize(int Size);
     bool writeValue(char const sensorId, int sensorValue);
     bool writeValue(char const sensorId, float sensorValue);
@@ -19,6 +17,7 @@ class JLog
     bool writeValue(char const sensorId, char sensorValue);
     bool writeValue(char const sensorId, short sensorValue);
     bool writeValue(char const sensorId, double sensorValue);
+    bool writeValue(char const sensorId, unsigned long sensorValue);
     #ifdef DEBUG
     void serialUpload(char const * fileName); //for debugging uploads file through serial
     #endif

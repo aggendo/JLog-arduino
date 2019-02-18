@@ -39,13 +39,15 @@ JLog logger = JLog();
 
 void setup()
 {
+  pinMode(5, OUTPUT);
+  pinMode(3, OUTPUT);
+  digitalWrite(5, HIGH);
+  digitalWrite(3, HIGH);
   // Setup Serial connection
   Serial.begin(9600);
   ss.begin(9600);
   
   bool gotdate = false;
-  pinMode(5, OUTPUT);
-  pinMode(3, OUTPUT);
   while (millis() < 5000){ //try for 5 seconds to get gps for date for filename
     while (ss.available() > 0){
       if (gps.encode(ss.read())){
@@ -58,7 +60,7 @@ void setup()
           
           gotdate = true;
           sprintf(filename, "%s.jlg",dateStr);
-          logger.begin(filename, SD_ID, true);//filename, SD_ID,true);
+          logger.begin(filename, SD_ID);//filename, SD_ID,true);
           break;
         }
       }
@@ -69,6 +71,7 @@ void setup()
   }
   if (!gotdate) //if we have not gotten gps go into a loop where we show that something is wrong
   {
+    digitalWrite(5, LOW);
     Serial.println(F("No GPS detected: check wiring."));
     while(true){
       digitalWrite(3, HIGH);
@@ -77,12 +80,12 @@ void setup()
       delay(1000);
     }
   }
+  digitalWrite(5, LOW);
+  digitalWrite(3, LOW);
 }
 
 void loop() {
-  /*delay(10);
-  // This sketch displays information every time a new sentence is correctly encoded.
-  while (ss.available() > 0){
+ while (ss.available() > 0){
     if (gps.encode(ss.read())){
       if (gps.location.isValid() && gps.location.isUpdated())
       {
@@ -101,5 +104,5 @@ void loop() {
         digitalWrite(5, LOW);
       }
     }
-  }*/
+  }
 }
